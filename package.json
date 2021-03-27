@@ -1,0 +1,28 @@
+{
+  "name": "backend.tech4news.net",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taidong1709/backend.tech4news.net.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/taidong1709/backend.tech4news.net/issues"
+  },
+  "homepage": "https://github.com/taidong1709/backend.tech4news.net#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "firebase-admin": "^9.5.0",
+    "pg": "^8.5.1",
+    "pg-hstore": "^2.3.3",
+    "sequelize": "^6.6.2"
+  }
+}
