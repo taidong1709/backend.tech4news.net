@@ -4,7 +4,7 @@ import Sequelize, { Op } from "sequelize";
 import * as firebase from "firebase-admin";
 
 (async () => {
-    firebase.initializeApp({
+    let fadmin = firebase.initializeApp({
         credential: firebase.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN))
     });
 
@@ -21,7 +21,8 @@ import * as firebase from "firebase-admin";
     let ArticleModel = sequelize.define("article", {
         id: {
             type: Sequelize.INTEGER,
-            primaryKey: true
+            primaryKey: true,
+            autoIncrement: true
         },
         title: Sequelize.STRING,
         thumbnail: Sequelize.STRING,
@@ -40,22 +41,17 @@ import * as firebase from "firebase-admin";
     let CommmentModel = sequelize.define("comments", {
         commentID: {
             type: Sequelize.INTEGER,
-            primaryKey: true
+            primaryKey: true,
+            autoIncrement: true
         },
-        user: Sequelize.STRING,
         userID: Sequelize.STRING,
         content: Sequelize.STRING,
-        replyTo: {
-            type: Sequelize.INTEGER,
-            allowNull: true,
-            defaultValue: null
-        },
         commentToPost: Sequelize.INTEGER
     });
 
     app.use(express.query());
     app.use(express.json());
-    app.get("/getPost", async (req, res) => {
+    app.get("/getpost", async (req, res) => {
         if (req.query.postID) {
             let postID = +req.query.postID;
             if (isNaN(postID)) return res.status(400).json({ error: "required query: postID" });
@@ -81,7 +77,7 @@ import * as firebase from "firebase-admin";
         }
     });
 
-    app.get("/getCatelogyPosts", async (req, res) => {
+    app.get("/getcatelogyposts", async (req, res) => {
         if (req.query.catelogyID) {
             let catelogyID = +req.query.catelogyID;
             if (isNaN(catelogyID)) return res.status(400).json({ error: "required query: catelogyID" });
@@ -101,7 +97,7 @@ import * as firebase from "firebase-admin";
         }
     });
 
-    app.get("/findPosts", async (req, res) => {
+    app.get("/findposts", async (req, res) => {
         if (req.query.search && req.query.search.length > 1) {
             let posts = await ArticleModel.findAndCountAll({
                 where: {
@@ -140,7 +136,13 @@ import * as firebase from "firebase-admin";
 
                 return {
                     count: comments.count,
-                    comments: comments.rows.map(r => r.get())
+                    comments: await Promise.all(comments.rows.map(r => r.get()).map(async c => {
+                        let user = await firebase.auth().getUser(c.userID);
+                        return {
+                            ...c,
+                            user: user.displayName ?? "Vô danh"
+                        }
+                    }))
                 }
             } else {
                 res.status(404).json({ error: "article not found" });
@@ -150,9 +152,52 @@ import * as firebase from "firebase-admin";
         }
     });
 
-    app.post("/addComments", async (req, res) => {
-        
+    app.post("/addcomment", async (req, res) => {
+        if (req.body && typeof req.body.token === "string" && req.body.token) {
+            try {
+                let dtoken = await fadmin.auth().verifyIdToken(req.body.token);
+
+                if (typeof req.body.content === "string" && req.body.content) {
+                    if (req.body.postID && !isNaN(+req.body.postID)) {
+                        if (await ArticleModel.findOne({ where: { id: +req.body.postID } })) {
+                            let c = await CommmentModel.create({
+                                userID: dtoken.uid,
+                                content: req.body.content,
+                                commentToPost: +req.body.postID
+                            });
+
+                            return res.status(200).json({ ok: true, commentID: c.get("commentID") });
+                        } else return res.status(404).json({ error: "article not found" });
+                    } else return res.status(400).json({ error: "need context (postID)" });
+                } else return res.status(400).json({ error: "need content" });
+            } catch (e) {
+                return res.status(403).json({ error: "please authenticate" });
+            }
+        } else return res.status(403).json({ error: "please authenticate" });
     });
+
+    app.post("/deletecomment", async (req, res) => {
+        if (req.body && typeof req.body.token === "string" && req.body.token) {
+            try {
+                let dtoken = await fadmin.auth().verifyIdToken(req.body.token);
+
+                if (req.body.commentID && !isNaN(+req.body.commentID)) {
+                    let c = await CommmentModel.findOne({ where: { commentID: +req.body.commentID }})
+
+                    if (c) {
+                        if (c.get("userID") === dtoken.uid) {
+                            c.destroy();
+                            return res.status(200).json({ ok: true });
+                        } else return res.status(403).json({ error: "only your comment can be deleted" });
+                    } else return res.status(400).json({ error: "comment not found" });
+                } else return res.status(400).json({ error: "need commentID" });
+            } catch (e) {
+                return res.status(403).json({ error: "please authenticate" });
+            }
+        } else return res.status(403).json({ error: "please authenticate" });
+    });
+
+    
 
     app.listen(process.env.PORT || 3000);
 })();
