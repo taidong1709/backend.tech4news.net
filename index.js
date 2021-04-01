@@ -1,3 +1,8 @@
+import fs from "fs";
+import crypto from "crypto";
+
+const ADMIN_PUBLIC_KEY = fs.readFileSync("./admin-public.pem", { encoding: "utf8" });
+
 import express from "express";
 import Sequelize, { Op } from "sequelize";
 
@@ -46,7 +51,11 @@ import * as firebase from "firebase-admin";
         },
         userID: Sequelize.STRING,
         content: Sequelize.STRING,
-        commentToPost: Sequelize.INTEGER
+        commentToPost: Sequelize.INTEGER,
+        timestamp: {
+            type: Sequelize.DATE,
+            defaultValue: Sequelize.NOW
+        }
     });
 
     app.use(express.query());
@@ -59,7 +68,8 @@ import * as firebase from "firebase-admin";
             let post = await ArticleModel.findOne({
                 where: {
                     id: postID
-                }
+                },
+                attributes: ["title", "thumbnail", "datePublished", "description", "viewCount", "catelogyID"]
             });
 
             if (post) {
@@ -67,7 +77,8 @@ import * as firebase from "firebase-admin";
                     viewCount: (BigInt(post.get("viewCount")) + 1n).toString()
                 });
                 res.status(200).json({
-                    ...post.get()
+                    ...post.get(),
+                    datePublished: post.get("datePublished").getTime()
                 });
             } else {
                 res.status(404).json({ error: "article not found" });
@@ -85,12 +96,16 @@ import * as firebase from "firebase-admin";
             let posts = await ArticleModel.findAndCountAll({
                 where: {
                     catelogyID: catelogyID
-                }
+                },
+                attributes: ["id", "title", "thumbnail", "datePublished", "description", "viewCount"]
             });
 
             res.status(200).json({
                 count: posts.count,
-                posts: posts.rows.map(r => r.get())
+                posts: posts.rows.map(r => ({
+                    ...r.get(),
+                    datePublished: r.get("time").getTime()
+                }))
             });
         } else {
             res.status(400).json({ error: "required query: catelogyID" });
@@ -109,7 +124,10 @@ import * as firebase from "firebase-admin";
 
             res.status(200).json({
                 count: posts.count,
-                posts: posts.rows.map(r => r.get())
+                posts: posts.rows.map(r => ({
+                    ...r.get(),
+                    datePublished: r.get("time").getTime()
+                }))
             });
         } else {
             res.status(400).json({ error: "required query: search" });
@@ -134,16 +152,17 @@ import * as firebase from "firebase-admin";
                     }
                 });
 
-                return {
+                return res.status(200).json({
                     count: comments.count,
                     comments: await Promise.all(comments.rows.map(r => r.get()).map(async c => {
                         let user = await firebase.auth().getUser(c.userID);
                         return {
                             ...c,
+                            timestamp: c.timestamp.getTime(),
                             user: user.displayName ?? "Vô danh"
                         }
                     }))
-                }
+                });
             } else {
                 res.status(404).json({ error: "article not found" });
             }
@@ -182,7 +201,7 @@ import * as firebase from "firebase-admin";
                 let dtoken = await fadmin.auth().verifyIdToken(req.body.token);
 
                 if (req.body.commentID && !isNaN(+req.body.commentID)) {
-                    let c = await CommmentModel.findOne({ where: { commentID: +req.body.commentID }})
+                    let c = await CommmentModel.findOne({ where: { commentID: +req.body.commentID }, attributes: ["id"] });
 
                     if (c) {
                         if (c.get("userID") === dtoken.uid) {
@@ -197,7 +216,68 @@ import * as firebase from "firebase-admin";
         } else return res.status(403).json({ error: "please authenticate" });
     });
 
-    
+    app.post("/admin", async (req, res) => {
+        if (req.body.encrypted) {
+            try {
+                let d = (crypto.publicDecrypt({
+                    key: ADMIN_PUBLIC_KEY,
+                    format: "pem",
+                    type: "pkcs1",
+                    encoding: "utf8"
+                }, req.body.encrypted)).toString("utf8");
+
+                let jd = JSON.parse(jd);
+                if (jd.timestamp - 240000 > Date.now() || jd.timestamp + 240000 < Date.now())
+                    return res.status(403).json({ error: "encrypted data is expired" });
+
+                switch (jd.operation) {
+                    case "addarticle":
+                        if (jd.title && jd.thumbnail && jd.description && jd.content && jd.catelogyID) {
+                            let a = await ArticleModel.create({
+                                title: jd.title,
+                                thumbnail: jd.thumbnail,
+                                description: jd.description,
+                                content: jd.content,
+                                catelogyID: jd.catelogyID
+                            });
+                            return res.status(200).json({ ok: true, articleID: a.get("id") });
+                        } else return res.status(400).json({ error: "not enough parameter" });
+                    case "removearticle":
+                        if (jd.articleID) {
+                            let a = await ArticleModel.findOne({
+                                where: {
+                                    id: jd.articleID
+                                },
+                                attributes: ["id"]
+                            });
+
+                            if (a) {
+                                await a.destroy();
+                                return res.status(200).json({ ok: true });
+                            } else return res.status(404).json({ error: "article not found" });
+                        } else return res.status(400).json({ error: "not enough parameter" });
+                    case "removecomment":
+                        if (jd.commentID) {
+                            let c = await CommmentModel.findOne({
+                                where: {
+                                    commentID: jd.commentID
+                                },
+                                attributes: ["commentID"]
+                            });
+
+                            if (c) {
+                                await c.destroy();
+                                return res.status(200).json({ ok: true });
+                            } else return res.status(404).json({ error: "comment not found" });
+                        } else return res.status(400).json({ error: "not enough paremeter" });
+                    default:
+                        return res.status(400).json({ error: "unknown operation" });
+                }
+            } catch {
+                return res.status(403).json({ error: "encrypted data is required" });
+            }
+        } else return res.status(403).json({ error: "encrypted data is required" });
+    });
 
     app.listen(process.env.PORT || 3000);
 })();
