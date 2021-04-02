@@ -227,7 +227,7 @@ import * as firebase from "firebase-admin";
                     encoding: "utf8"
                 }, req.body.encrypted)).toString("utf8");
 
-                let jd = JSON.parse(jd);
+                let jd = JSON.parse(d);
                 if (jd.timestamp - 240000 > Date.now() || jd.timestamp + 240000 < Date.now())
                     return res.status(403).json({ error: "encrypted data is expired" });
 
