@@ -135,7 +135,7 @@ import * as firebase from "firebase-admin";
         }
     });
 
-    app.get("/getComments", async (req, res) => {
+    app.get("/getcomments", async (req, res) => {
         if (req.query.postID) {
             let postID = +req.query.postID;
             if (isNaN(postID)) return res.status(400).json({ error: "required query: postID" });
