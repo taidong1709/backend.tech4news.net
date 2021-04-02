@@ -97,7 +97,8 @@ import * as firebase from "firebase-admin";
                 where: {
                     catelogyID: catelogyID
                 },
-                attributes: ["id", "title", "thumbnail", "datePublished", "description", "viewCount"]
+                attributes: ["id", "title", "thumbnail", "datePublished", "description", "viewCount"],
+                ...((!isNaN(+req.query.limit) && +req.query.limit > 0) ? { limit: +req.query.limit } : {})
             });
 
             res.status(200).json({
@@ -113,7 +114,7 @@ import * as firebase from "firebase-admin";
     });
 
     app.get("/findposts", async (req, res) => {
-        if (req.query.search && req.query.search.length > 1) {
+        if (req.query.search && req.query.search.length > 2) {
             let posts = await ArticleModel.findAndCountAll({
                 where: {
                     title: {
