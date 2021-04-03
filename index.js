@@ -8,6 +8,7 @@ import Sequelize from "sequelize";
 let Op = Sequelize.Op;
 
 import firebase from "firebase-admin";
+import cors from "cors";
 
 (async () => {
     let fadmin = firebase.initializeApp({
@@ -62,6 +63,7 @@ import firebase from "firebase-admin";
     });
     CommmentModel.sync()
 
+    app.use(cors());
     app.use(express.query());
     app.use(express.json());
     app.get("/getpost", async (req, res) => {

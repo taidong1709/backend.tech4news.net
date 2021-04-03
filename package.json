@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/taidong1709/backend.tech4news.net#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.17.1",
     "firebase-admin": "^9.5.0",
     "pg": "^8.5.1",
