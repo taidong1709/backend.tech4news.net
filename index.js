@@ -44,6 +44,8 @@ import firebase from "firebase-admin";
         },
         catelogyID: Sequelize.INTEGER
     });
+    ArticleModel.sync();
+
     let CommmentModel = sequelize.define("comments", {
         commentID: {
             type: Sequelize.INTEGER,
@@ -58,6 +60,7 @@ import firebase from "firebase-admin";
             defaultValue: Sequelize.NOW
         }
     });
+    CommmentModel.sync()
 
     app.use(express.query());
     app.use(express.json());
