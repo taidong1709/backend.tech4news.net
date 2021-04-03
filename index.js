@@ -7,7 +7,7 @@ import express from "express";
 import Sequelize from "sequelize";
 let Op = Sequelize.Op;
 
-import * as firebase from "firebase-admin";
+import firebase from "firebase-admin";
 
 (async () => {
     let fadmin = firebase.initializeApp({
