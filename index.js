@@ -4,7 +4,8 @@ import crypto from "crypto";
 const ADMIN_PUBLIC_KEY = fs.readFileSync("./admin-public.pem", { encoding: "utf8" });
 
 import express from "express";
-import Sequelize, { Op } from "sequelize";
+import Sequelize from "sequelize";
+let Op = Sequelize.Op;
 
 import * as firebase from "firebase-admin";
 
