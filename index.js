@@ -100,7 +100,7 @@ import cors from "cors";
             if (isNaN(catelogyID)) return res.status(400).json({ error: "required query: catelogyID" });
 
             let posts = await ArticleModel.findAndCountAll({
-                where: {
+                where: catelogyID < 0 ? {} : {
                     catelogyID: catelogyID
                 },
                 order: [["datePublished", "DESC"]],
@@ -112,7 +112,7 @@ import cors from "cors";
                 count: posts.count,
                 posts: posts.rows.map(r => ({
                     ...r.get(),
-                    datePublished: r.get("time").getTime()
+                    datePublished: r.get("datePublished").getTime()
                 }))
             });
         } else {
@@ -135,7 +135,7 @@ import cors from "cors";
                 order: [["datePublished", "DESC"]],
                 posts: posts.rows.map(r => ({
                     ...r.get(),
-                    datePublished: r.get("time").getTime()
+                    datePublished: r.get("datePublished").getTime()
                 }))
             });
         } else {
