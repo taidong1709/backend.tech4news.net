@@ -97,6 +97,7 @@ import * as firebase from "firebase-admin";
                 where: {
                     catelogyID: catelogyID
                 },
+                order: [["datePublished", "DESC"]],
                 attributes: ["id", "title", "thumbnail", "datePublished", "description", "viewCount"],
                 ...((!isNaN(+req.query.limit) && +req.query.limit > 0) ? { limit: +req.query.limit } : {})
             });
@@ -125,6 +126,7 @@ import * as firebase from "firebase-admin";
 
             res.status(200).json({
                 count: posts.count,
+                order: [["datePublished", "DESC"]],
                 posts: posts.rows.map(r => ({
                     ...r.get(),
                     datePublished: r.get("time").getTime()
@@ -150,7 +152,8 @@ import * as firebase from "firebase-admin";
                 let comments = await CommmentModel.findAndCountAll({
                     where: {
                         commentToPost: postID
-                    }
+                    },
+                    order: [["timestamp", "DESC"]],
                 });
 
                 return res.status(200).json({
