@@ -31,16 +31,16 @@ import cors from "cors";
             primaryKey: true,
             autoIncrement: true
         },
-        title: Sequelize.STRING,
-        thumbnail: Sequelize.STRING,
+        title: Sequelize.TEXT,
+        thumbnail: Sequelize.TEXT,
         datePublished: {
             type: Sequelize.DATE,
             defaultValue: Sequelize.NOW
         },
-        description: Sequelize.STRING,
-        content: Sequelize.STRING,
+        description: Sequelize.TEXT,
+        content: Sequelize.TEXT,
         viewCount: {
-            type: Sequelize.STRING,
+            type: Sequelize.TEXT,
             defaultValue: "0"
         },
         catelogyID: Sequelize.INTEGER
@@ -53,8 +53,8 @@ import cors from "cors";
             primaryKey: true,
             autoIncrement: true
         },
-        userID: Sequelize.STRING,
-        content: Sequelize.STRING,
+        userID: Sequelize.TEXT,
+        content: Sequelize.TEXT,
         commentToPost: Sequelize.INTEGER,
         timestamp: {
             type: Sequelize.DATE,
@@ -75,7 +75,7 @@ import cors from "cors";
                 where: {
                     id: postID
                 },
-                attributes: ["title", "thumbnail", "datePublished", "description", "viewCount", "catelogyID"]
+                attributes: ["id", "title", "thumbnail", "datePublished", "description", "viewCount", "catelogyID"]
             });
 
             if (post) {
