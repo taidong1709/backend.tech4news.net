@@ -75,7 +75,7 @@ import cors from "cors";
                 where: {
                     id: postID
                 },
-                attributes: ["id", "title", "thumbnail", "datePublished", "description", "viewCount", "catelogyID"]
+                attributes: ["id", "title", "thumbnail", "datePublished", "description", "viewCount", "catelogyID", "content"]
             });
 
             if (post) {
