@@ -82,8 +82,14 @@ import cors from "cors";
                 await post.update({
                     viewCount: (BigInt(post.get("viewCount")) + 1n).toString()
                 });
+                let content = post.get("content");
+                try {
+                    content = Buffer.from(content, "base64").toString("utf-8");
+                } catch {}
+
                 res.status(200).json({
                     ...post.get(),
+                    content,
                     datePublished: post.get("datePublished").getTime()
                 });
             } else {
